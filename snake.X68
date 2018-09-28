@@ -9,7 +9,7 @@ START           ORG $0
 SCREEN_SIZE     EQU 640
 TILE_SIZE       EQU 10
 GRID_WIDTH      EQU 40
-GRID_HEIGHT     EQU 40
+GRID_HEIGHT     EQU 20
 BLACK           EQU $00000000
 MAROON          EQU $00000080
 GREEN           EQU $00008000
@@ -93,8 +93,16 @@ BOARD_STATE_LOOP ; There always will be at least one iteration
 
         MOVE.L #0,D1 ; Draw an empty rectangle with a white border.
         MOVE.L #0,D2
-        MOVE.L #402,D3
-        MOVE.L #402,D4
+        LEA TILE_SIZE,A0 ; Load TILE_SIZE
+        MOVE.L A0,D7
+        LEA GRID_WIDTH,A0 ; Load GRID_WIDTH
+        MOVE.L A0,D3      ; Calculate position of right border
+        MULS D7,D3
+        ADDQ #2,D3        ; Offset right border by 2
+        LEA GRID_HEIGHT,A0 ; Load GRID_HEIGHT
+        MOVE.L A0,D4      ; Calculate position of bottom border
+        MULS D7,D4
+        ADDQ #2,D4        ; Offset bottom border by 2
         MOVEQ #90,D0
         TRAP #15
 
