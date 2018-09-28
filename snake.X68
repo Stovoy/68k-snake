@@ -6,10 +6,10 @@
 START           ORG $0
 
 * Constants
-SCREEN_SIZE     EQU 400
-TILE_SIZE       EQU 30
-GRID_WIDTH      EQU 20
-GRID_HEIGHT     EQU 20
+SCREEN_SIZE     EQU 640
+TILE_SIZE       EQU 10
+GRID_WIDTH      EQU 40
+GRID_HEIGHT     EQU 40
 BLACK           EQU $00000000
 MAROON          EQU $00000080
 GREEN           EQU $00008000
@@ -27,11 +27,11 @@ AQUA            EQU $00FFFF00
 LTGRAY          EQU $00C0C0C0
 WHITE           EQU $00FFFFFF
 
-* Set screen resolution to 400x400
+* Set screen resolution to SCREEN_SIZExSCREEN_SIZE (min: 640x480)
 RES     LEA SCREEN_SIZE,A0
         MOVE.L A0,D1 ; Move the screen width into D1.
-        ASL #4,D1 ; Shift over to the right-most bytes.
-        ADD.L A0,D1 ; Move the screen height into D1.
+        SWAP D1     ; Move the screenwidth into upper 16 bits of D1
+        ADD.L A0,D1 ; Move the screen height into lower 16 bits of D1.
         MOVEQ #33,D0
         TRAP #15 ; Set screen resolution.
 
@@ -53,19 +53,13 @@ RES     LEA SCREEN_SIZE,A0
         MOVE.W A0,D2
         LEA GRID_WIDTH,A0
         MOVE.W A0,D3
+        MULS D3,D2 ; Compute how many steps would be in loop
 
         MOVE.W #$1000,A0 ; Address to write to
-        MOVE.W #0,D0 ; y counter
-INIT_GRIDY   ; y loop
-        MOVE.W #0,D1 ; x counter
-INIT_GRIDX   ; x loop
+BOARD_STATE_LOOP ; There always will be at least one iteration
         MOVE.W #0,(A0)+ ; Write a 0 into the grid
-        ADDQ #1,D1 ; Increment x
-        CMP D1,D3
-        BNE INIT_GRIDX ; Break out of the x loop?
-        ADDQ #1,D0 ; Increment y
-        CMP D0,D2
-        BNE INIT_GRIDY ; Break out of the y loop?
+        SUBQ #1,D2 ; Decrement number of remaining steps
+        BNE BOARD_STATE_LOOP ; Branch if number of remaining steps is greater than 0
 
         ; Initialize time since spawned food to 0.
         MOVE.W #$992,A0
