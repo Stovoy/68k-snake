@@ -148,36 +148,26 @@ DRAW_TILE
         BEQ SNAKE_STYLE
         CMP #2,D2
         BEQ FOOD_STYLE
-        BRA EMPTY_STYLE
 
-EMPTY_STYLE
+        ; Empty style
         LEA BLACK,A0 ; Set pen and fill color to Black
-        MOVE.L A0,D1
-        MOVEQ #80,D0
-        TRAP #15
-        MOVEQ #81,D0
-        TRAP #15
         BRA _DRAW_TILE
 
 SNAKE_STYLE
         LEA FUCHSIA,A0 ; Set pen and fill color to Fuchsia
-        MOVE.L A0,D1
-        MOVEQ #80,D0
-        TRAP #15
-        MOVEQ #81,D0
-        TRAP #15
         BRA _DRAW_TILE
 
 FOOD_STYLE
         LEA RED,A0 ; Set pen and fill color to Red
+        BRA _DRAW_TILE
+
+_DRAW_TILE
         MOVE.L A0,D1
         MOVEQ #80,D0
         TRAP #15
         MOVEQ #81,D0
         TRAP #15
-        BRA _DRAW_TILE
-
-_DRAW_TILE
+        
         LEA TILE_SIZE,A0 ; Draw a rectangle at x * SQUARESIZE + 1, y * SQUARESIZE + 1
                          ; with size SQUARESIZE, SQUARESIZE.
         MOVE.L A0,D7
