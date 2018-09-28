@@ -1,10 +1,15 @@
+
+*~Font name~Courier New~
+*~Font size~10~
+*~Tab type~1~
+*~Tab size~4~
 START           ORG $0
 
 * Constants
 SCREEN_SIZE     EQU 400
-TILE_SIZE       EQU 10
-GRID_WIDTH      EQU 40
-GRID_HEIGHT     EQU 40
+TILE_SIZE       EQU 30
+GRID_WIDTH      EQU 20
+GRID_HEIGHT     EQU 20
 BLACK           EQU $00000000
 MAROON          EQU $00000080
 GREEN           EQU $00008000
@@ -27,12 +32,12 @@ RES     LEA SCREEN_SIZE,A0
         MOVE.L A0,D1 ; Move the screen width into D1.
         ASL #4,D1 ; Shift over to the right-most bytes.
         ADD.L A0,D1 ; Move the screen height into D1.
-        MOVE.B #33,D0
+        MOVEQ #33,D0
         TRAP #15 ; Set screen resolution.
 
 * Enable keyboard input
         MOVE.W #$0103,D1
-        MOVE.B #62,D0
+        MOVEQ #62,D0
         TRAP #15
 
 * Initialize the board state.
@@ -54,18 +59,25 @@ RES     LEA SCREEN_SIZE,A0
 INIT_GRIDY   ; y loop
         MOVE.W #0,D1 ; x counter
 INIT_GRIDX   ; x loop
-        MOVE.W #0,(A0) ; Write a 0 into the grid
-        ADDA #$2,A0 ; Increment address for next spot
-        ADDI #1,D1 ; Increment x
+        MOVE.W #0,(A0)+ ; Write a 0 into the grid
+        ADDQ #1,D1 ; Increment x
         CMP D1,D3
         BNE INIT_GRIDX ; Break out of the x loop?
-        ADDI #1,D0 ; Increment y
+        ADDQ #1,D0 ; Increment y
         CMP D0,D2
         BNE INIT_GRIDY ; Break out of the y loop?
 
-* Initialize snake body memory.
-* Snake length at $2000 starts at 0.
-* Ring buffer start location at $2002 starts at $2004.
+        ; Initialize time since spawned food to 0.
+        MOVE.W #$992,A0
+        MOVE.L #0,(A0)
+
+        ; Default to moving right.
+        MOVE.W #$998,A0
+        MOVE.W #3,(A0)
+
+        ; Initialize snake body memory.
+        ; Snake length at $2000 starts at 0.
+        ; Ring buffer start location at $2002 starts at $2004.
 
         MOVE.W #$2000,A0
         MOVE.W #0,(A0)
@@ -79,17 +91,17 @@ INIT_GRIDX   ; x loop
         JSR ADD_SNAKE_BODY
         ADD.W #6,A7
 
-* Draw the border.
+        ; Draw the border.
         LEA  WHITE,A0 ; Set pen to White
         MOVE.L A0,D1
-        MOVE.B #80,D0
+        MOVEQ #80,D0
         TRAP #15
 
         MOVE.L #0,D1 ; Draw an empty rectangle with a white border.
         MOVE.L #0,D2
         MOVE.L #402,D3
         MOVE.L #402,D4
-        MOVE.B #90,D0
+        MOVEQ #90,D0
         TRAP #15
 
         BRA GAME_LOOP
@@ -106,25 +118,19 @@ RENDER_GRID
 RENDER_GRIDY   ; y loop
         MOVE.W #0,D1 ; x counter
 RENDER_GRIDX   ; x loop
-        MOVE.W D1,-(A7)
-        MOVE.W D0,-(A7)
-        MOVE.W (A1),-(A7)
+        MOVE.W (A1),D4
+        MOVEM.W D1/D0/D4/D2/D3,-(A7)
         ; DRAW_TILE uses all the data registers, so we have to copy out our D2-D3 to the stack too.
-        MOVE.W D2,-(A7)
-        MOVE.W D3,-(A7)
         JSR DRAW_TILE
         ; Read D0-D4 back from the stack.
-        MOVEM.W 6(A7),D0
-        MOVEM.W 8(A7),D1
-        MOVEM.W (A7),D3
-        MOVEM.W 2(A7),D2
+        MOVEM.W (A7),D3/D2/D4/D0/D1
         ADD.W #10,A7
 
         ADDA #$2,A1 ; Increment address for next spot
-        ADDI #1,D1 ; Increment x
+        ADDQ #1,D1 ; Increment x
         CMP D1,D3
         BNE RENDER_GRIDX ; Break out of the x loop?
-        ADDI #1,D0 ; Increment y
+        ADDQ #1,D0 ; Increment y
         CMP D0,D2
         BNE RENDER_GRIDY ; Break out of the y loop?
 
@@ -133,12 +139,9 @@ RENDER_GRIDX   ; x loop
 * Subroutine DRAW_TIME(x, y, tile_type) - Draws tile type at x, y.
 * tile_type can be one of 0 (empty), 1 (snake), 2 (food)
 DRAW_TILE
-        CLR D2
-        CLR D5
-        CLR D6
-        MOVE.W 12(A7),D5 ; Get x, y.
-        MOVE.W 10(A7),D6
-        MOVE.W 8(A7),D2 ; Get tile_type.
+        MOVE.W 4(A7),D6
+        MOVE.W 6(A7),D5 ; Get x, y.
+        MOVE.W 12(A7),D2 ; Get tile_type.
 
         CMP #1,D2
         BEQ SNAKE_STYLE
@@ -149,27 +152,27 @@ DRAW_TILE
 EMPTY_STYLE
         LEA BLACK,A0 ; Set pen and fill color to Black
         MOVE.L A0,D1
-        MOVE.B #80,D0
+        MOVEQ #80,D0
         TRAP #15
-        MOVE.B #81,D0
+        MOVEQ #81,D0
         TRAP #15
         BRA _DRAW_TILE
 
 SNAKE_STYLE
         LEA FUCHSIA,A0 ; Set pen and fill color to Fuchsia
         MOVE.L A0,D1
-        MOVE.B #80,D0
+        MOVEQ #80,D0
         TRAP #15
-        MOVE.B #81,D0
+        MOVEQ #81,D0
         TRAP #15
         BRA _DRAW_TILE
 
 FOOD_STYLE
         LEA RED,A0 ; Set pen and fill color to Red
         MOVE.L A0,D1
-        MOVE.B #80,D0
+        MOVEQ #80,D0
         TRAP #15
-        MOVE.B #81,D0
+        MOVEQ #81,D0
         TRAP #15
         BRA _DRAW_TILE
 
@@ -179,17 +182,32 @@ _DRAW_TILE
         MOVE.L A0,D7
         MOVE.L D5,D1      ; Calculate left position
         MULS D7,D1
-        ADDI #1,D1
+        ADDQ #1,D1
         MOVE.L D6,D2      ; Calculate top position
         MULS D7,D2
-        ADDI #1,D2
+        ADDQ #1,D2
         MOVE.L D1,D3      ; Calculate right position
         ADD.L D7,D3
         MOVE.L D2,D4      ; Calculate bottom position
         ADD.L D7,D4
-        MOVE.B #87,D0
+        MOVEQ #87,D0
         TRAP #15
         
+        RTS
+
+* Subroutine GET_GRID_OBJ(x, y) - Returns the value on the grid at x, y.
+* Puts the result into D7.
+GET_GRID_OBJ
+        MOVE.W 4(A7),D1 ; Get x, y
+        MOVE.W 6(A7),D0
+        LEA GRID_WIDTH,A0 ; Get grid width
+        MOVE.W A0,D2
+        MULS D1,D2 ; Compute the position in memory of that x, y address on the grid.
+        ADD D0,D2
+        ASL #1,D2 ; Multiple by 2 because we're using words (2 bytes).
+        ADDI #$1000,D2
+        MOVE.W D2,A0 ; Address to read from
+        MOVE.W (A0),D7 ; Return result in D7
         RTS
 
 * Subroutine ADD_SNAKE_BODY(x, y, remove_tail) - Adds a snake body part at (x, y) and adds it to the head of the snake in memory.
@@ -231,7 +249,7 @@ ADD_SNAKE_BODY
         BEQ REMOVE_TAIL
 
         ; Increment the length of the snake.
-        ADDI #1,D0
+        ADDQ #1,D0
         MOVE.W #$2000,A0
         MOVE.W D0,(A0)
         BRA ADD_TO_BUFFER
@@ -243,7 +261,7 @@ REMOVE_TAIL
         MOVE.W #0,(A2)
 
         ; Increment the ring buffer's start position.
-        ADDI #2,D1
+        ADDQ #2,D1
         MOVE.W D1,(A0)
 
 ADD_TO_BUFFER
@@ -263,7 +281,7 @@ MOVE_SNAKE
         ; Get keys and store in D7.
         MOVE.L #'W'<<24+'A'<<16+'S'<<8+'D',D1 ; check for keypress (w,a,s,d).
 
-        MOVE.B #19,D0
+        MOVEQ #19,D0
         TRAP   #15
 
         MOVE.L D1,D7
@@ -294,10 +312,19 @@ MOVE_SNAKE
         ; Remainder in upper 16 bits.
         MOVE.L D0,D1 ; y
         SWAP D1
-        CLR D1 ; Clear upper 16 bits.
+        CLR D1 ; Clear lower 16 bits.
         SWAP D1
 
         SWAP D0 ; x
+
+        ; Read direction from memory.
+        ; Directions:
+        ;  0 = up
+        ;  1 = left
+        ;  2 = down
+        ;  3 = right
+        MOVE.W #$998,A0
+        MOVE.W (A0),D2
 
         BTST.L #24,D7
         BNE W_PRESSED
@@ -307,36 +334,118 @@ MOVE_SNAKE
         BNE S_PRESSED
         BTST.L #0,D7
         BNE D_PRESSED
-        ; Default to moving right for now.
-        ADDI #1,D0 ; Increment x to move right
+        ; If no key pressed, continue moving in the same direction.
         BRA PROCESS_MOVEMENT
 W_PRESSED
-        SUBI #1,D1 ; Decrement y to move up
-        BRA PROCESS_MOVEMENT
+        MOVEQ #0,D2
+        BRA UPDATE_DIR
 A_PRESSED
-        SUBI #1,D0 ; Decrement x to move left
-        BRA PROCESS_MOVEMENT
+        MOVEQ #1,D2
+        BRA UPDATE_DIR
 S_PRESSED
-        ADDI #1,D1 ; Increment y to move down
-        BRA PROCESS_MOVEMENT
+        MOVEQ #2,D2
+        BRA UPDATE_DIR
 D_PRESSED
-        ADDI #1,D0 ; Increment x to move right
-        BRA PROCESS_MOVEMENT
+        MOVEQ #3,D2
+        BRA UPDATE_DIR
+UPDATE_DIR
+        ; Update direction in memory.
+        MOVE.W D2,(A0)
 PROCESS_MOVEMENT
-        ; Assuming snake direction is right for now.
+        ; Update x and y based on direction.
+        CMP #0,D2
+        BEQ MOVING_UP
+        CMP #1,D2
+        BEQ MOVING_LEFT
+        CMP #2,D2
+        BEQ MOVING_DOWN
+        BRA MOVING_RIGHT
+MOVING_UP
+        SUBQ #1,D1
+        BRA FINISHED_MOVING
+MOVING_LEFT
+        SUBQ #1,D0
+        BRA FINISHED_MOVING
+MOVING_DOWN
+        ADDQ #1,D1
+        BRA FINISHED_MOVING
+MOVING_RIGHT
+        ADDQ #1,D0
+        BRA FINISHED_MOVING
+FINISHED_MOVING
         MOVE.W D0,-(A7)
         MOVE.W D1,-(A7)
-        MOVE.W #1,-(A7)
+        JSR GET_GRID_OBJ
+        ADD.W #4,A7
+
+        MOVE.W #1,D2
+        CMP #2,D7 ; There is food at where we're moving to.
+        BNE ADD_HEAD
+        MOVE.W #0,D2
+ADD_HEAD
+        MOVE.W D0,-(A7)
+        MOVE.W D1,-(A7)
+        MOVE.W D2,-(A7)
         JSR ADD_SNAKE_BODY
         ADD.W #6,A7
+        RTS
+
+* Subroutine ADD_FOOD() - Adds food onto the grid.
+ADD_FOOD
+        MOVEQ #8,D0
+        TRAP #15
+        MOVE.L D1,D0
+        MOVE.L #$992,A0
+        MOVE.L D0,D3
+        SUB.L (A0),D3
+        CMP #500,D3
+        BRA ACTUALLY_ADD_FOOD
+        RTS
+ACTUALLY_ADD_FOOD
+        MOVE.L D0,(A0)
+        ; Compute a random address to start searching for where to place the food.
+        ; The food cannot be placed on top of the snake.
+        LEA GRID_HEIGHT,A0 ; Get grid constants
+        MOVE.W A0,D2
+        LEA GRID_WIDTH,A0
+        MOVE.W A0,D3
+        MULS D3,D2 ; Multiply WIDTH * HEIGHT to get total grid spaces.
+        MOVE.W D2,D3 ; Store total amount of different indicies.
+        ASL #1,D2 ; Multiply by 2 for words.
+        ADDI #$1000,D2 ; Get end position.
+        DIVS D3,D1 ; Divide time / total different indicies.
+        CLR D1
+        SWAP D1 ; Get remainder.
+        ASL #1,D1 ; Multiply by 2 for words.
+        ADDI #$1000,D1 ; Get address in grid offset randomly (but in bounds).
+        MOVE.W D1,A0
+        MOVE.B #0,D7 ; Put a 0 in D7, which means we haven't done one full search sweep yet.
+SEARCH_LOOP
+        MOVE.W (A0),D0
+        CMP #0,D0 ; Space is empty.
+        BEQ VALID_SPACE
+        ADDQ #2,A0 ; Increment the search address.
+        CMP D2,A0 ; Check if search address goes out of bounds.
+        BLT SEARCH_LOOP
+        CMP #1,D7
+        BEQ NO_VALID_SPACES ; Already done one full loop
+        MOVE.W #$1000,A0 ; Back to start.
+        MOVE.B #1,D7 ; Gone back to start once.
+        BRA SEARCH_LOOP
+NO_VALID_SPACES
+        RTS
+VALID_SPACE
+        MOVE.W #2,(A0) ; Put the food in that space.
+        RTS
 
 * Subroutine GAME_LOOP() - Runs the main game loop.
 GAME_LOOP
         JSR RENDER_GRID
         JSR MOVE_SNAKE
+        JSR ADD_FOOD
         BRA GAME_LOOP
 
-STOP    MOVE.B #9,D0
+STOP    MOVEQ #9,D0
         TRAP #15
         
         END START
