@@ -338,7 +338,6 @@ S_PRESSED
         BRA UPDATE_DIR
 D_PRESSED
         MOVEQ #3,D2
-        BRA UPDATE_DIR
 UPDATE_DIR
         ; Update direction in memory.
         MOVE.W D2,(A0)
@@ -350,7 +349,10 @@ PROCESS_MOVEMENT
         BEQ MOVING_LEFT
         CMP #2,D2
         BEQ MOVING_DOWN
-        BRA MOVING_RIGHT
+
+        ; MOVING RIGHT
+        ADDQ #1,D0
+        BRA FINISHED_MOVING
 MOVING_UP
         SUBQ #1,D1
         BRA FINISHED_MOVING
@@ -359,10 +361,6 @@ MOVING_LEFT
         BRA FINISHED_MOVING
 MOVING_DOWN
         ADDQ #1,D1
-        BRA FINISHED_MOVING
-MOVING_RIGHT
-        ADDQ #1,D0
-        BRA FINISHED_MOVING
 FINISHED_MOVING
         MOVE.W D0,-(A7)
         MOVE.W D1,-(A7)
