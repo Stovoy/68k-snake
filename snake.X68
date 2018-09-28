@@ -9,7 +9,7 @@ START           ORG $0
 SCREEN_SIZE     EQU 640
 TILE_SIZE       EQU 10
 GRID_WIDTH      EQU 40
-GRID_HEIGHT     EQU 20
+GRID_HEIGHT     EQU 40
 BLACK           EQU $00000000
 MAROON          EQU $00000080
 GREEN           EQU $00008000
@@ -30,7 +30,7 @@ WHITE           EQU $00FFFFFF
 * Set screen resolution to SCREEN_SIZExSCREEN_SIZE (min: 640x480)
 RES     LEA SCREEN_SIZE,A0
         MOVE.L A0,D1 ; Move the screen width into D1.
-        SWAP D1     ; Move the screenwidth into upper 16 bits of D1
+        SWAP D1     ; Move the screen width into upper 16 bits of D1
         ADD.L A0,D1 ; Move the screen height into lower 16 bits of D1.
         MOVEQ #33,D0
         TRAP #15 ; Set screen resolution.
@@ -83,7 +83,7 @@ BOARD_STATE_LOOP ; There always will be at least one iteration
         MOVE.W #0,-(A7)
         MOVE.W #0,-(A7)
         JSR ADD_SNAKE_BODY
-        ADD.W #6,A7
+        ADDQ #6,A7
 
         ; Draw the border.
         LEA  WHITE,A0 ; Set pen to White
@@ -91,8 +91,8 @@ BOARD_STATE_LOOP ; There always will be at least one iteration
         MOVEQ #80,D0
         TRAP #15
 
-        MOVE.L #0,D1 ; Draw an empty rectangle with a white border.
-        MOVE.L #0,D2
+        MOVEQ #0,D1 ; Draw an empty rectangle with a white border.
+        MOVEQ #0,D2
         LEA TILE_SIZE,A0 ; Load TILE_SIZE
         MOVE.L A0,D7
         LEA GRID_WIDTH,A0 ; Load GRID_WIDTH
@@ -116,19 +116,18 @@ RENDER_GRID
         MOVE.W A0,D3
 
         MOVE.W #$1000,A1 ; Address to read from
-        MOVE.W #0,D0 ; y counter
+        MOVEQ #0,D0 ; y counter
 RENDER_GRIDY   ; y loop
-        MOVE.W #0,D1 ; x counter
+        MOVEQ #0,D1 ; x counter
 RENDER_GRIDX   ; x loop
         MOVE.W (A1),D4
         MOVEM.W D1/D0/D4/D2/D3,-(A7)
         ; DRAW_TILE uses all the data registers, so we have to copy out our D2-D3 to the stack too.
         JSR DRAW_TILE
         ; Read D0-D4 back from the stack.
-        MOVEM.W (A7),D3/D2/D4/D0/D1
-        ADD.W #10,A7
+        MOVEM.W (A7)+,D3/D2/D4/D0/D1
 
-        ADDA #$2,A1 ; Increment address for next spot
+        ADDQ #$2,A1 ; Increment address for next spot
         ADDQ #1,D1 ; Increment x
         CMP D1,D3
         BNE RENDER_GRIDX ; Break out of the x loop?
@@ -270,7 +269,7 @@ ADD_TO_BUFFER
         ; Note: Possible overflow.
 
         ; Write the new snake part's address into the list at the ring buffer's location + (length - 1).
-        SUBI #1,D0
+        SUBQ #1,D0
         ASL #1,D0
         ADD D0,D1
         MOVE.W D1,A0
@@ -298,7 +297,7 @@ MOVE_SNAKE
         MOVE.W (A0),D1
 
         ; Get the memory address of the snake head in the grid from the buffer.
-        SUBI #1,D0
+        SUBQ #1,D0
         ASL #1,D0
         ADD D0,D1
         MOVE.W D1,A0
@@ -378,18 +377,18 @@ FINISHED_MOVING
         MOVE.W D0,-(A7)
         MOVE.W D1,-(A7)
         JSR GET_GRID_OBJ
-        ADD.W #4,A7
+        ADDQ #4,A7
 
-        MOVE.W #1,D2
+        MOVEQ #1,D2
         CMP #2,D7 ; There is food at where we're moving to.
         BNE ADD_HEAD
-        MOVE.W #0,D2
+        MOVEQ #0,D2
 ADD_HEAD
         MOVE.W D0,-(A7)
         MOVE.W D1,-(A7)
         MOVE.W D2,-(A7)
         JSR ADD_SNAKE_BODY
-        ADD.W #6,A7
+        ADDQ #6,A7
         RTS
 
 * Subroutine ADD_FOOD() - Adds food onto the grid.
@@ -421,7 +420,7 @@ ACTUALLY_ADD_FOOD
         ASL #1,D1 ; Multiply by 2 for words.
         ADDI #$1000,D1 ; Get address in grid offset randomly (but in bounds).
         MOVE.W D1,A0
-        MOVE.B #0,D7 ; Put a 0 in D7, which means we haven't done one full search sweep yet.
+        MOVEQ #0,D7 ; Put a 0 in D7, which means we haven't done one full search sweep yet.
 SEARCH_LOOP
         MOVE.W (A0),D0
         CMP #0,D0 ; Space is empty.
@@ -432,7 +431,7 @@ SEARCH_LOOP
         CMP #1,D7
         BEQ NO_VALID_SPACES ; Already done one full loop
         MOVE.W #$1000,A0 ; Back to start.
-        MOVE.B #1,D7 ; Gone back to start once.
+        MOVEQ #1,D7 ; Gone back to start once.
         BRA SEARCH_LOOP
 NO_VALID_SPACES
         RTS
